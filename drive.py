@@ -18,16 +18,17 @@ SCOPES = 'https://www.googleapis.com/auth/drive'
 CLIENT_SECRET_FILE = 'client_id.json'
 APPLICATION_NAME = 'Drive API Python Quickstart'
 
-COMMANDS = {
-    "list" : "List files in the current working directory",
-    "upload <filename>" : "Uploads a file to drive",
-    "download <filename>" : "Downloads the file",
-    "exit" : "Exit the application."
-}
+COMMANDS = [
+    ("list", "List files in the current working directory"),
+    ("upload <filename>", "Uploads a file to drive"),
+    ("download <filename>", "Downloads the file"),
+    ("open <directory>", "Open directory specified."),
+    ("exit", "Exit the application.")
+]
 
 def print_valid_commands():
     print "Valid Commands:"
-    for key, value in COMMANDS.items():
+    for (key, value) in COMMANDS:
         print key + " : " + value
 
 
@@ -58,33 +59,61 @@ def get_credentials():
     return credentials
 
 def main():
-    """Shows basic usage of the Google Drive API.
-
-    Creates a Google Drive API service object and outputs the names and IDs
-    for up to 10 files.
-    """
     credentials = get_credentials()
     http = credentials.authorize(httplib2.Http())
     service = discovery.build('drive', 'v3', http=http)
 
+    current_location = "root"
+    previous_location = "root"
+
+    current_directory = []
     while(True):
         command = raw_input("command$>")
         command = command.split(" ")
-        if(command[0] == "list"):
-            results = service.files().list(pageSize=20,fields="nextPageToken, files(id, name)").execute()
+        if command[0] == "list" :
+            results = service.files().list( q = "'"+ current_location + "' in parents and trashed=false", orderBy="folder", fields="nextPageToken, files(id, name, kind, mimeType)").execute()
             items = results.get('files', [])
             if not items:
-                print('No files found.')
+                print'No files found.'
             else:
-                print('Files:')
                 for item in items:
-                    print '{0} ({1}'.format(item['name'], item['id'])
+                    if item['mimeType'] == "application/vnd.google-apps.folder":
+                        print "|----", item['name']
+                    else: 
+                        print '|-', item['name']
+                    current_directory.append((item['id'], item['name'], item['mimeType']))
             continue
-        if command[0] == "exit":
-            return
+        if command[0] == "open":
+            if len(command) == 2:
+                new_path = command[1]
+                found_path = False
+
+                for id, name, mimeType in current_directory:
+                    if name == new_path:
+                        new_path_id = id
+                        found_path = True
+                if found_path:
+                    results = service.files().list( q = "'"+ new_path_id + "' in parents and trashed=false", orderBy="folder", fields="nextPageToken, files(id, name, kind, mimeType)").execute()
+                    items = results.get('files', [])
+                    if not items:
+                        print'No files found.'
+                    else:
+                        previous_location = current_location
+                        current_location = new_path
+
+                        for item in items:
+                            if item['mimeType'] == "application/vnd.google-apps.folder":
+                                print "|----", item['name']
+                            else: 
+                                print '|-', item['name']
+                    continue   
         if command[0] == "upload":
             print command[1]
             continue
+
+        if command[0] == "exit":
+            return
+
         print "Invalid command."
         print_valid_commands()
 
