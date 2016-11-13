@@ -21,6 +21,7 @@ APPLICATION_NAME = 'Drive API Python Quickstart'
 
 COMMANDS = {
     "list" : "List files in the current working directory",
+    "download <filename>" : "Downloads the file"
     "exit" : "Exit the application."
 }
 def print_valid_commands():
