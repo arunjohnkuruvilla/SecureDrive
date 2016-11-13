@@ -1,4 +1,3 @@
-from __future__ import print_function
 import httplib2
 import os
 
@@ -27,9 +26,9 @@ COMMANDS = {
 }
 
 def print_valid_commands():
-    print ("Valid Commands:")
+    print "Valid Commands:"
     for key, value in COMMANDS.items():
-        print (key + " : " + value)
+        print key + " : " + value
 
 
 def get_credentials():
@@ -79,14 +78,14 @@ def main():
             else:
                 print('Files:')
                 for item in items:
-                    print('{0} ({1})'.format(item['name'], item['id']))
+                    print '{0} ({1}'.format(item['name'], item['id'])
             continue
         if command[0] == "exit":
             return
         if command[0] == "upload":
-            print (command[1])
+            print command[1]
             continue
-        print ("Invalid command.")
+        print "Invalid command."
         print_valid_commands()
 
 if __name__ == '__main__':
