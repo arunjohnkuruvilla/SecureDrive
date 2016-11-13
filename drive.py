@@ -111,6 +111,10 @@ def main():
             print command[1]
             continue
 
+        if command[0] == "download":
+            print command[1]
+            continue
+
         if command[0] == "exit":
             return
 
