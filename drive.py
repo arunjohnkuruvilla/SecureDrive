@@ -21,11 +21,13 @@ APPLICATION_NAME = 'Drive API Python Quickstart'
 
 COMMANDS = {
     "list" : "List files in the current working directory",
-    "exit" : "Exit the application."
+    "exit" : "Exit the application.",
+    "upload" : "Uploads a file to drive"
 }
+
 def print_valid_commands():
     print ("Valid Commands:")
-    for key, value in COMMANDS:
+    for key, value in COMMANDS.items():
         print (key + " : " + value)
 
 
@@ -67,7 +69,8 @@ def main():
 
     while(True):
         command = raw_input("command$>")
-        if(command == "list"):
+        command = command.split(" ")
+        if(command[0] == "list"):
             results = service.files().list(pageSize=20,fields="nextPageToken, files(id, name)").execute()
             items = results.get('files', [])
             if not items:
@@ -77,8 +80,11 @@ def main():
                 for item in items:
                     print('{0} ({1})'.format(item['name'], item['id']))
             continue
-        if command == "exit":
+        if command[0] == "exit":
             return
+        if command[0] == "upload":
+            print (command[1])
+            continue
         print ("Invalid command.")
         print_valid_commands()
 
