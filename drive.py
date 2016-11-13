@@ -70,7 +70,7 @@ def main():
     while(True):
         command = raw_input("command$>")
         command = command.split(" ")
-        if(command[0] == "list"):
+        if command[0] == "list":
             results = service.files().list(pageSize=20,fields="nextPageToken, files(id, name)").execute()
             items = results.get('files', [])
             if not items:
@@ -83,6 +83,9 @@ def main():
         if command[0] == "exit":
             return
         if command[0] == "upload":
+            print command[1]
+            continue
+        if command[0] == "download":
             print command[1]
             continue
         print "Invalid command."
