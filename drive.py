@@ -15,9 +15,18 @@ except ImportError:
 
 # If modifying these scopes, delete your previously saved credentials
 # at ~/.credentials/drive-python-quickstart.json
-SCOPES = 'https://www.googleapis.com/auth/drive.metadata.readonly'
+SCOPES = 'https://www.googleapis.com/auth/drive'
 CLIENT_SECRET_FILE = 'client_id.json'
 APPLICATION_NAME = 'Drive API Python Quickstart'
+
+COMMANDS = {
+    "list" : "List files in the current working directory",
+    "exit" : "Exit the application."
+}
+def print_valid_commands():
+    print ("Valid Commands:")
+    for key, value in COMMANDS:
+        print (key + " : " + value)
 
 
 def get_credentials():
@@ -33,8 +42,7 @@ def get_credentials():
     credential_dir = os.path.join(home_dir, '.credentials')
     if not os.path.exists(credential_dir):
         os.makedirs(credential_dir)
-    credential_path = os.path.join(credential_dir,
-                                   'drive-python-quickstart.json')
+    credential_path = os.path.join(credential_dir, 'drive-python-quickstart.json')
 
     store = Storage(credential_path)
     credentials = store.get()
@@ -45,7 +53,6 @@ def get_credentials():
             credentials = tools.run_flow(flow, store, flags)
         else: # Needed only for compatibility with Python 2.6
             credentials = tools.run(flow, store)
-        print('Storing credentials to ' + credential_path)
     return credentials
 
 def main():
@@ -58,15 +65,22 @@ def main():
     http = credentials.authorize(httplib2.Http())
     service = discovery.build('drive', 'v3', http=http)
 
-    results = service.files().list(
-        pageSize=20,fields="nextPageToken, files(id, name)").execute()
-    items = results.get('files', [])
-    if not items:
-        print('No files found.')
-    else:
-        print('Files:')
-        for item in items:
-            print('{0} ({1})'.format(item['name'], item['id']))
+    while(True):
+        command = raw_input("command$>")
+        if(command == "list"):
+            results = service.files().list(pageSize=20,fields="nextPageToken, files(id, name)").execute()
+            items = results.get('files', [])
+            if not items:
+                print('No files found.')
+            else:
+                print('Files:')
+                for item in items:
+                    print('{0} ({1})'.format(item['name'], item['id']))
+            continue
+        if command == "exit":
+            return
+        print ("Invalid command.")
+        print_valid_commands()
 
 if __name__ == '__main__':
     main()
