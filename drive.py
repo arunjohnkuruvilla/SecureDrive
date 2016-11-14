@@ -19,10 +19,10 @@ CLIENT_SECRET_FILE = 'client_id.json'
 APPLICATION_NAME = 'Drive API Python Quickstart'
 
 COMMANDS = [
-    ("list", "List files in the current working directory"),
+    ("ls", "List files in the current working directory"),
     ("upload <filename>", "Uploads a file to drive"),
     ("download <filename>", "Downloads the file"),
-    ("open <directory>", "Open directory specified."),
+    ("cd <directory>", "Open directory specified."),
     ("exit", "Exit the application.")
 ]
 
@@ -65,12 +65,20 @@ def main():
 
     current_location = "root"
     previous_location = "root"
+    current_directory_elements = []
 
-    current_directory = []
+    #Get contents of root directory on successfull connection
+    results = service.files().list( q = "'"+ current_location + "' in parents and trashed=false", orderBy="folder", fields="nextPageToken, files(id, name, kind, mimeType)").execute()
+    items = results.get('files', [])
+    for item in items:
+        if item['mimeType'] != "application/vnd.google-apps.folder":
+            current_directory_elements.append((item['id'], item['name'], item['mimeType']))
+
+    #Loop for terminal
     while(True):
         command = raw_input("command$>")
         command = command.split(" ")
-        if command[0] == "list" :
+        if command[0] == "ls" :
             results = service.files().list( q = "'"+ current_location + "' in parents and trashed=false", orderBy="folder", fields="nextPageToken, files(id, name, kind, mimeType)").execute()
             items = results.get('files', [])
             if not items:
@@ -81,14 +89,14 @@ def main():
                         print "|----", item['name']
                     else: 
                         print '|-', item['name']
-                    current_directory.append((item['id'], item['name'], item['mimeType']))
+                    current_directory_elements.append((item['id'], item['name'], item['mimeType']))
             continue
-        if command[0] == "open":
+        if command[0] == "cd":
             if len(command) == 2:
                 new_path = command[1]
                 found_path = False
 
-                for id, name, mimeType in current_directory:
+                for id, name, mimeType in current_directory_elements:
                     if name == new_path:
                         new_path_id = id
                         found_path = True
@@ -112,8 +120,22 @@ def main():
             continue
 
         if command[0] == "download":
-            print command[1]
-            continue
+            if len(command) == 2:
+                filename = command[1]
+                found_file = False
+                for id, name, mimeType in current_directory_elements:
+                    if name == filename:
+                        requested_file = (id, name, mimeType)
+                        found_file = True
+                if found_file:
+                    if requested_file[2] != "application/vnd.google-apps.folder":
+                        file = service.files().get(fileId=requested_file[0], acknowledgeAbuse=None).execute()
+                        print file
+                    else:
+                        print "Requested resource is a directory"
+                else:
+                    print "File with filename does not exist"
+                continue
 
         if command[0] == "exit":
             return
