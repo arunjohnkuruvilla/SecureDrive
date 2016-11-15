@@ -1,13 +1,16 @@
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
+import os
 
 COMMANDS = [
+	("help","Shows this help banner"),								# yet to implement
     ("ls", "List files in the current working directory"),			# Partially implemented
     ("pwd", "Prints the present working directory"),				# Partially implemented
     ("upload <filename>", "Uploads a file to drive"),				# Partially implemented
     ("download <filename>", "Downloads the file"),					# To be implemented
     ("cd <directory>", "Open directory specified."),				# Partially implemented
-    ("exit", "Exit the application.")								# Implemented
+    ("exit", "Exit the application."),								# Implemented
+    ("logout","Logout from drive")									# Implemented
 ]
 
 def print_valid_commands():
@@ -134,9 +137,14 @@ def main():
 
 		elif command[0] == "upload":
 			print command[1]
-
+		elif command[0] == 'logout':
+			if len(command) == 1:
+				os.remove("credentials.json")
+				return
 		elif command[0] == "exit":
 			return
+		elif command[0] == "help":
+			print_valid_commands()
 		else:
 			print "Invalid command."
 			print_valid_commands()
