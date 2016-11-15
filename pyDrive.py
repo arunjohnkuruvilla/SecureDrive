@@ -1,5 +1,6 @@
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
+import os
 
 COMMANDS = [
     ("ls", "List files in the current working directory"),			# Partially implemented
@@ -7,7 +8,8 @@ COMMANDS = [
     ("upload <filename>", "Uploads a file to drive"),				# Partially implemented
     ("download <filename>", "Downloads the file"),					# To be implemented
     ("cd <directory>", "Open directory specified."),				# Partially implemented
-    ("exit", "Exit the application.")								# Implemented
+    ("logout", "Log out from current session."),					# To be implemented
+    ("exit", "Exit the application without logging out.")			# Implemented
 ]
 
 def print_valid_commands():
@@ -133,7 +135,11 @@ def main():
 					print "Invalid path provided"
 
 		elif command[0] == "upload":
-			print command[1]
+			filename = command[1]
+			if command[1] in os.listdir("."):
+				print "Preparing file to upload..."
+			else:
+				print "Filename provided does not exist in current directory"
 
 		elif command[0] == "exit":
 			return
