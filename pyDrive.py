@@ -3,6 +3,7 @@ from pydrive.drive import GoogleDrive
 import os
 
 COMMANDS = [
+	("help","Shows this help banner"),								# yet to implement
     ("ls", "List files in the current working directory"),			# Partially implemented
     ("pwd", "Prints the present working directory"),				# Partially implemented
     ("upload <filename>", "Uploads a file to drive"),				# Partially implemented
@@ -141,8 +142,17 @@ def main():
 			else:
 				print "Filename provided does not exist in current directory"
 
+			print command[1]
+
+		elif command[0] == 'logout':
+			if len(command) == 1:
+				os.remove("credentials.json")
+				return
+
 		elif command[0] == "exit":
 			return
+		elif command[0] == "help":
+			print_valid_commands()
 		else:
 			print "Invalid command."
 			print_valid_commands()
