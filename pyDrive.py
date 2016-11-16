@@ -138,18 +138,26 @@ def main():
 		elif command[0] == "upload":
 			filename = command[1]
 			if command[1] in os.listdir("."):
-				print "Preparing file to upload..."
+				print "Preparing file to upload."
+				# Create GoogleDriveFile instance with title 'Hello.txt'.
+				file = drive.CreateFile()
+				file.SetContentFile(filename)
+				file.Upload()
+				print('File uploaded. Title: %s, ID: %s' % (file['title'], file['id']))
+				# title: Hello.txt, id: {{FILE_ID}}
+
 			else:
 				print "Filename provided does not exist in current directory"
 
-			print command[1]
-
 		elif command[0] == 'logout':
 			if len(command) == 1:
-				os.remove("credentials.json")
+				if os.path.exists("./credentials.json"):
+					os.remove("credentials.json")
+				print "Logged out. Exiting."
 				return
 
 		elif command[0] == "exit":
+			print "Exiting without logging out."
 			return
 		elif command[0] == "help":
 			print_valid_commands()
