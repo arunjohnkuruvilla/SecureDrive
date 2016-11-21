@@ -14,9 +14,11 @@ COMMANDS = [
 	("pwd", "NOT IMPLEMENTED - Prints the present working directory"),					# Partially implemented
 	("upload <filename>", "Uploads a file to drive"),									# Partially implemented
 	("download <filename>", "Downloads the file"),										# To be implemented
+	("download <filename>", "Downloads the file"),										# Partially implemented
 	("cd <directory>", "NOT IMPLEMENTED - Open directory specified."),					# Partially implemented
+	("clear","Clears the screen")
 	("logout", "Log out from current session."),										# To be implemented
-	("exit", "Exit the application without logging out.")								# Implemented
+	("exit", "Exit the application without logging out."),								# Implemented
 ]
 
 def print_valid_commands():
@@ -184,7 +186,29 @@ def main():
 						print "Requested resource is a directory"
 				else:
 					print "File with filename does not exist"
-		
+		elif command[0] == "delete":
+			if len(command) == 2:
+				filename = command[1]
+				found_file = False
+				for id, title, mimeType in current_directory_files:
+					if title == filename:
+						requested_file = (id, title, mimeType)
+						found_file = True
+				if found_file:
+					if requested_file[2] != "application/vnd.google-apps.folder":
+						
+						try:
+							file1 = drive.CreateFile({'id': requested_file[0]})
+							file1.Trash()
+						except:
+							print "File cannot be deleted. Possibly a Google Doc or Slides file."
+						else:
+							print "File deleted : " + requested_file[1]
+					else:
+						print "Requested resource is a directory. Cannot be deleted"
+				else:
+					print "File with filename does not exist"
+
 		elif command[0] == "cd":
 			'''
 			if len(command) == 2:
@@ -264,7 +288,7 @@ def main():
 				# title: Hello.txt, id: {{FILE_ID}}
 
 			else:
-				print "Filename provided does not exist in current directory"
+				print "File does not exist in current directory"
 
 		elif command[0] == 'logout':
 			if len(command) == 1:
@@ -276,6 +300,9 @@ def main():
 		elif command[0] == "exit":
 			print "Exiting without logging out."
 			return
+		elif command[0] == 'clear':
+			for i in xrange(20):
+				print "\n"
 		elif command[0] == "help":
 			print_valid_commands()
 		else:
