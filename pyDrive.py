@@ -13,11 +13,12 @@ BASE_SIZE = 32
 
 COMMANDS = [
 	("help","Shows this help banner"),													# yet to implement
-	("ls", "NOT IMPLEMENTED - List files in the current working directory"),			# Partially implemented
+	("ls", "List files in the current working directory"),								# Partially implemented
 	("pwd", "NOT IMPLEMENTED - Prints the present working directory"),					# Partially implemented
 	("upload <filename>", "Uploads a file to drive"),									# Partially implemented
 	("download <filename>", "Downloads the file"),										# To be implemented
 	("cd <directory>", "NOT IMPLEMENTED - Open directory specified."),					# Not implemented
+	("delete <filename>", "Open directory specified."),									# Implemented
 	("clear","Clears the screen"),														# Implemented
 	("logout", "Log out from current session."),										# To be implemented
 	("exit", "Exit the application without logging out."),								# Implemented
@@ -145,9 +146,9 @@ def main():
 	########################################################################################
 	# DELETE FOR PRODUCTION
 	########################################################################################
-	# if file_list:
-	#	for item in file_list:
-	#		drive.CreateFile({'id': item['id']}).Trash()
+	if file_list:
+		for item in file_list:
+			drive.CreateFile({'id': item['id']}).Trash()
 	########################################################################################
 
 	for item in file_list:
@@ -229,20 +230,41 @@ def main():
 			if len(command) == 2:
 				filename = command[1]
 				found_file = False
-				for id, title, mimeType in current_directory_files:
-					if title == filename:
-						requested_file = (id, title, mimeType)
+				for count, item in enumerate(current_directory_files):
+					if item[1] == filename:
+						requested_file = (item[0], item[1], item[2], item[3])
 						found_file = True
+						file_location = count
+						print file_location
 				if found_file:
 					if requested_file[2] != "application/vnd.google-apps.folder":
-						
 						try:
+							print requested_file
 							file1 = drive.CreateFile({'id': requested_file[0]})
 							file1.Trash()
+							
 						except:
 							print "File cannot be deleted. Possibly a Google Doc or Slides file."
 						else:
 							print "File deleted : " + requested_file[1]
+
+							del current_directory_files[file_location]
+							if current_directory_files:
+								print current_directory_files
+								flat_filesystem = flatten_filesystem(current_directory_files)
+								open(filesystem_hash, "w").write(flat_filesystem)
+								# encrypt_file(filesystem_hash, filesystem_hash, )
+								# Checking if filesystem file uploaded for the first time
+								if FILESYSTEM_STATUS:
+									filesystem_file = drive.CreateFile({'id': filesystem_id}).Trash()
+								filesystem_file = drive.CreateFile({'title': filesystem_hash})
+								filesystem_file.SetContentFile(filesystem_hash)
+								filesystem_file.Upload()
+								filesystem_name = filesystem_hash
+								filesystem_id = filesystem_file['id']
+							else:
+								if FILESYSTEM_STATUS:
+									filesystem_file = drive.CreateFile({'id': filesystem_id}).Trash()
 					else:
 						print "Requested resource is a directory. Cannot be deleted"
 				else:
@@ -274,17 +296,17 @@ def main():
 					print current_directory_files
 					flat_filesystem = flatten_filesystem(current_directory_files)
 					open(filesystem_hash, "w").write(flat_filesystem)
-
+					# encrypt_file(filesystem_hash, filesystem_hash, )
 					# Checking if filesystem file uploaded for the first time
 					if FILESYSTEM_STATUS:
 						filesystem_file = drive.CreateFile({'id': filesystem_id}).Trash()
+					
+					FILESYSTEM_STATUS = True
 					filesystem_file = drive.CreateFile({'title': filesystem_hash})
 					filesystem_file.SetContentFile(filesystem_hash)
 					filesystem_file.Upload()
 					filesystem_name = filesystem_hash
 					filesystem_id = filesystem_file['id']
-
-					FILESYSTEM_STATUS = True
 
 					os.remove(filename_hash)
 					print current_directory_files
