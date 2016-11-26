@@ -107,8 +107,6 @@ def decrypt_file(input_filename, output_filename, key, iv):
 		for x in chunk:
 			out_file.write(bytes(x))  # changed chunk to bytes(...)
 
-	hash_file = open(output_filename, 'rb')
-
 	if h.digest() == hash_chunk:
 		return True, hash_chunk
 	else:
@@ -118,15 +116,15 @@ def decrypt_file(input_filename, output_filename, key, iv):
 def flatten_filesystem(filesystem):
 	flat_filesystem = ''
 	for file in filesystem:
-		flat_filesystem += str(file[0]) + "," + str(file[1]) + "," + str(file[2]) + "," + str(file[3]) + "," + str(file[4]) + "\n"
+		flat_filesystem += str(file[0]) + "," + str(file[1]) + "," + str(file[2]) + "," + str(file[3]) + "," + str(file[4]) + "," + str(file[5]) + "\n"
 	return flat_filesystem
 
 def main():
 	DEBUG = False
 	FILESYSTEM_STATUS = False
 
-	if os.path.exists("./filesystem"):
-		os.remove("./filesystem")
+	
+
 
 	# Checking for Private Key
 	if os.path.exists("./private.key"):
@@ -139,7 +137,7 @@ def main():
 
 	
 	else:
-		print "private.key missing."
+		print "private.key missing. Aborting."
 		# Implement case when private key is missing
 		# Generate Keys if a new user
 		return
@@ -155,10 +153,14 @@ def main():
 		decrypt_file("test_enc.txt", "test_dec.txt", key, iv)
 		return
 
-	gauth = GoogleAuth()
-	gauth.LocalWebserverAuth()
-
-	drive = GoogleDrive(gauth)
+	# Initialization
+	try:
+		gauth = GoogleAuth()
+		gauth.LocalWebserverAuth()
+		drive = GoogleDrive(gauth)
+	except:
+		print "No internet connection found. Exiting"
+		return
 
 	#current_location = "root"
 	#current_location_name = "root"
@@ -167,27 +169,27 @@ def main():
 	#current_directory_files = []
 	#current_directory_directories = []
 
+	# Filesystem Syncronization
 	filesystem_hash = binascii.hexlify(md5(iv).digest()) + ".txt"
-
 	file_list = drive.ListFile({'q': "'root' in parents and trashed=false"}).GetList()
-
 	
-
 	########################################################################################
 	# DELETE FOR PRODUCTION
 	########################################################################################
-	if file_list:
-		for item in file_list:
-			drive.CreateFile({'id': item['id']}).Trash()
+	# if file_list:
+	#	for item in file_list:
+	#		drive.CreateFile({'id': item['id']}).Trash()
+	# os.remove(filesystem_hash)
 	########################################################################################
 
+	
 	for item in file_list:
 		if item['title'] == filesystem_hash:
 
 			filesystem_name = filesystem_hash
 			filesystem_id = item['id']
 			drive.CreateFile({'id': item['id']}).GetContentFile(filesystem_hash)
-
+			decrypt_file(filesystem_hash, "filesystem.txt", key, iv)
 			# Add logic to check validity of the file system here
 			#
 			#
@@ -195,23 +197,21 @@ def main():
 			#
 			
 			FILESYSTEM_STATUS = True
+
 	current_directory_files = []
 
 	if FILESYSTEM_STATUS:
-		for line in open(filesystem_hash):
+		for line in open("filesystem.txt"):
 			current_directory_files.append(line.split(","))
 
+	if os.path.exists(filesystem_hash):
+		os.remove(filesystem_hash)
+	if os.path.exists("filesystem.txt"):
+		os.remove("filesystem.txt")
 
-	'''
-	for item in file_list:
-		if item['mimeType'] != "application/vnd.google-apps.folder":
-			current_directory_files.append((item['id'], item['title'], item['mimeType']))
-		else:
-			current_directory_directories.append((item['id'], item['title'], item['mimeType']))
-	'''
-
+	# Shell
 	while(True):
-		command = raw_input("command$>")
+		command = raw_input("secureDrive$ ")
 		command = command.split(" ", 1)
 		if command[0] == "ls" :
 			if current_directory_files:
@@ -220,18 +220,6 @@ def main():
 			else:
 				print "No files found."
 		elif command[0] == "pwd":
-			'''
-			if len(path_history) == 0:
-				print "/"
-			else:
-				path = ""
-				for x in xrange(len(path_history)):
-					if path_history[-x-1][1] == "root":
-						path += "/"
-					else:
-						path = path + path_history[-x-1][1] + "/"
-				print path + current_location_name
-			'''
 			print "Present Working Directory - Not implemented"
 
 		elif command[0] == "download":
@@ -239,9 +227,10 @@ def main():
 				filename = command[1]
 				found_file_local = False
 				found_file_global = False
-				for id, title, mimeType, filename_hash, file_hash in current_directory_files:
-					if title == filename:
-						requested_file = (id, title, mimeType, filename_hash, file_hash)
+				for item in current_directory_files:
+					if item[1] == filename:
+						# requested_file = (ID, title, mimeType, filename_hash, file_hash, file_size)
+						requested_file = (item[0], item[1], item[2], item[3], item[4], item[5])
 						found_file_local = True
 				temp_file_list = drive.ListFile({'q': "'root' in parents and trashed=false"}).GetList()
 				if temp_file_list:
@@ -250,13 +239,13 @@ def main():
 							found_file_global = True
 				if found_file_local and found_file_global:
 					if requested_file[2] != "application/vnd.google-apps.folder":
-						#file = service.files().get(fileId=requested_file[0], acknowledgeAbuse=None).execute()
 						try:
 							drive.CreateFile({'id': requested_file[0]}).GetContentFile(requested_file[3])
 						except:
 							print "File cannot be downloaded. Possibly a Google Doc or Slides file."
 						else:
 							status, requested_file_hash = decrypt_file(requested_file[3], 'dec_'+requested_file[1], key, iv)
+							os.remove(requested_file[3])
 							if status and requested_file_hash == requested_file[4]:
 								print "File downloaded and saved to ./" + 'dec_'+requested_file[1]
 							else:
@@ -271,7 +260,7 @@ def main():
 				found_file = False
 				for count, item in enumerate(current_directory_files):
 					if item[1] == filename:
-						requested_file = (item[0], item[1], item[2], item[3], item[4])
+						requested_file = (item[0], item[1], item[2], item[3], item[4], item[5])
 						found_file = True
 						file_location = count
 						print file_location
@@ -318,8 +307,8 @@ def main():
 			if command[1] in os.listdir("."):
 				print "Preparing file to upload."
 
-				filesize = os.path.getsize(filename)
-				file_hash = encrypt_file(filename, filename_hash, filesize, key, iv)
+				file_size = os.path.getsize(filename)
+				file_hash = encrypt_file(filename, filename_hash, file_size, key, iv)
 
 				try:
 					file = drive.CreateFile({'title': filename_hash})
@@ -331,10 +320,11 @@ def main():
 				else:
 
 					# Updating the filesystem file on Drive
-					current_directory_files.append((file['id'], filename, file['mimeType'], filename_hash, file_hash))
-					print current_directory_files
+					current_directory_files.append((file['id'], filename, file['mimeType'], filename_hash, file_hash, file_size))
 					flat_filesystem = flatten_filesystem(current_directory_files)
-					open(filesystem_hash, "w").write(flat_filesystem)
+					open("temp_filesystem.txt", "w").write(flat_filesystem)
+					encrypt_file("temp_filesystem.txt", filesystem_hash, file_size, key, iv)
+					os.remove("temp_filesystem.txt")
 					# encrypt_file(filesystem_hash, filesystem_hash, )
 					# Checking if filesystem file uploaded for the first time
 					if FILESYSTEM_STATUS:
