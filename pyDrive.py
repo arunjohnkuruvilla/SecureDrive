@@ -7,6 +7,7 @@ from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 
 from Crypto.Cipher import AES
+from Crypto.Hash import SHA256
 from Crypto import Random
 
 BASE_SIZE = 32
@@ -41,8 +42,11 @@ def derive_key_and_iv(password, salt, key_length, iv_length):
 def encrypt_file(input_filename, output_filename, filesize, key, iv):
 	cipher = AES.new(key, AES.MODE_CBC, iv)
 	in_file = open(input_filename, 'r')
+	hash_file = open(input_filename, 'rb')
 	out_file = open(output_filename, 'w')
 	finished = False
+
+	h = SHA256.new()
 
 	# Adding size of file to output
 	chunk = str(filesize)
@@ -50,6 +54,18 @@ def encrypt_file(input_filename, output_filename, filesize, key, iv):
 	chunk += padding_length * chr(padding_length)
 	out_file.write(cipher.encrypt(chunk))
 
+	while True:
+		data = hash_file.read(BASE_SIZE)
+		if not data:
+			break
+		h.update(data)
+
+	file_hash = h.digest()
+
+	out_file.write(cipher.encrypt(file_hash))
+
+	in_file.seek(0, 0)
+	finished = False
 	# Encrypting rest of the file
 	while not finished:
 		chunk = in_file.read(1024 * BASE_SIZE)
@@ -58,6 +74,8 @@ def encrypt_file(input_filename, output_filename, filesize, key, iv):
 			chunk += padding_length * chr(padding_length)
 			finished = True
 		out_file.write(cipher.encrypt(chunk))
+
+	return file_hash
 
 def decrypt_file(input_filename, output_filename, key, iv):
 	# added salt_header=''
@@ -70,25 +88,37 @@ def decrypt_file(input_filename, output_filename, key, iv):
 	chunk = cipher.decrypt(in_file.read(BASE_SIZE))
 	padding_length = ord(chunk[-1])  # removed ord(...) as unnecessary
 	chunk = chunk[:-padding_length]
-	print chunk
 	# for x in chunk:
 	#	out_file.write(bytes(x))
+
+	hash_chunk = cipher.decrypt(in_file.read(BASE_SIZE))
+
+	h = SHA256.new()
 
 	next_chunk = ''
 	finished = False
 	while not finished:
-		chunk, next_chunk = next_chunk, cipher.decrypt(in_file.read(1024 * BASE_SIZE))
+		chunk, next_chunk = next_chunk, cipher.decrypt(in_file.read(BASE_SIZE))
 		if len(next_chunk) == 0:
 			padding_length = ord(chunk[-1])  # removed ord(...) as unnecessary
 			chunk = chunk[:-padding_length]
-			finished = True 
+			finished = True
+		h.update(chunk)
 		for x in chunk:
 			out_file.write(bytes(x))  # changed chunk to bytes(...)
+
+	hash_file = open(output_filename, 'rb')
+
+	if h.digest() == hash_chunk:
+		return True, hash_chunk
+	else:
+		os.remove(output_filename)
+		return False, 0
 
 def flatten_filesystem(filesystem):
 	flat_filesystem = ''
 	for file in filesystem:
-		flat_filesystem += str(file[0]) + "," + str(file[1]) + "," + str(file[2]) + "," + str(file[3]) + "\n"
+		flat_filesystem += str(file[0]) + "," + str(file[1]) + "," + str(file[2]) + "," + str(file[3]) + "," + str(file[4]) + "\n"
 	return flat_filesystem
 
 def main():
@@ -121,7 +151,7 @@ def main():
 		if os.path.exists("test_dec.txt"):
 			os.remove("test_dec.txt")
 		filesize = os.path.getsize("test.txt")
-		encrypt_file("test.txt", "test_enc.txt", filesize, key, iv)
+		file_hash = encrypt_file("test.txt", "test_enc.txt", filesize, key, iv)
 		decrypt_file("test_enc.txt", "test_dec.txt", key, iv)
 		return
 
@@ -207,12 +237,18 @@ def main():
 		elif command[0] == "download":
 			if len(command) == 2:
 				filename = command[1]
-				found_file = False
-				for id, title, mimeType, filename_hash in current_directory_files:
+				found_file_local = False
+				found_file_global = False
+				for id, title, mimeType, filename_hash, file_hash in current_directory_files:
 					if title == filename:
-						requested_file = (id, title, mimeType, filename_hash)
-						found_file = True
-				if found_file:
+						requested_file = (id, title, mimeType, filename_hash, file_hash)
+						found_file_local = True
+				temp_file_list = drive.ListFile({'q': "'root' in parents and trashed=false"}).GetList()
+				if temp_file_list:
+					for item in temp_file_list:
+						if item['title'] == requested_file[3]:
+							found_file_global = True
+				if found_file_local and found_file_global:
 					if requested_file[2] != "application/vnd.google-apps.folder":
 						#file = service.files().get(fileId=requested_file[0], acknowledgeAbuse=None).execute()
 						try:
@@ -220,8 +256,11 @@ def main():
 						except:
 							print "File cannot be downloaded. Possibly a Google Doc or Slides file."
 						else:
-							decrypt_file(requested_file[3], 'dec_'+requested_file[1], key, iv)
-							print "File downloaded and saved to ./" + 'dec_'+requested_file[1]
+							status, requested_file_hash = decrypt_file(requested_file[3], 'dec_'+requested_file[1], key, iv)
+							if status and requested_file_hash == requested_file[4]:
+								print "File downloaded and saved to ./" + 'dec_'+requested_file[1]
+							else:
+								print "Corrupted file present."
 					else:
 						print "Requested resource is a directory"
 				else:
@@ -232,7 +271,7 @@ def main():
 				found_file = False
 				for count, item in enumerate(current_directory_files):
 					if item[1] == filename:
-						requested_file = (item[0], item[1], item[2], item[3])
+						requested_file = (item[0], item[1], item[2], item[3], item[4])
 						found_file = True
 						file_location = count
 						print file_location
@@ -280,7 +319,7 @@ def main():
 				print "Preparing file to upload."
 
 				filesize = os.path.getsize(filename)
-				encrypt_file(filename, filename_hash, filesize, key, iv)
+				file_hash = encrypt_file(filename, filename_hash, filesize, key, iv)
 
 				try:
 					file = drive.CreateFile({'title': filename_hash})
@@ -292,7 +331,7 @@ def main():
 				else:
 
 					# Updating the filesystem file on Drive
-					current_directory_files.append((file['id'], filename, file['mimeType'], filename_hash))
+					current_directory_files.append((file['id'], filename, file['mimeType'], filename_hash, file_hash))
 					print current_directory_files
 					flat_filesystem = flatten_filesystem(current_directory_files)
 					open(filesystem_hash, "w").write(flat_filesystem)
