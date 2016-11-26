@@ -267,7 +267,6 @@ def main():
 				if found_file:
 					if requested_file[2] != "application/vnd.google-apps.folder":
 						try:
-							print requested_file
 							file1 = drive.CreateFile({'id': requested_file[0]})
 							file1.Trash()
 							
@@ -280,7 +279,9 @@ def main():
 							if current_directory_files:
 								print current_directory_files
 								flat_filesystem = flatten_filesystem(current_directory_files)
-								open(filesystem_hash, "w").write(flat_filesystem)
+								open("temp_filesystem.txt", "w").write(flat_filesystem)
+								encrypt_file("temp_filesystem.txt", filesystem_hash, file_size, key, iv)
+								os.remove("temp_filesystem.txt")
 								# encrypt_file(filesystem_hash, filesystem_hash, )
 								# Checking if filesystem file uploaded for the first time
 								if FILESYSTEM_STATUS:
@@ -318,7 +319,6 @@ def main():
 					print "File upload failed. Please try again."
 					pass
 				else:
-
 					# Updating the filesystem file on Drive
 					current_directory_files.append((file['id'], filename, file['mimeType'], filename_hash, file_hash, file_size))
 					flat_filesystem = flatten_filesystem(current_directory_files)
@@ -338,8 +338,7 @@ def main():
 					filesystem_id = filesystem_file['id']
 
 					os.remove(filename_hash)
-					print current_directory_files
-					print'File uploaded. Title: %s, ID: %s' % (file['title'], file['id'])
+					print'File uploaded successfully.'
 
 			else:
 				print "File does not exist in current directory"
