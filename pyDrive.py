@@ -1,6 +1,7 @@
 import os
 import json
 import binascii
+import re
 
 from hashlib import md5
 from pydrive.auth import GoogleAuth
@@ -211,7 +212,7 @@ def main():
 
 	# Shell
 	while(True):
-		command = raw_input("secureDrive$ ")
+		command = raw_input("SecureDrive$ ")
 		command = command.split(" ", 1)
 		if command[0] == "ls" :
 			if current_directory_files:
@@ -304,44 +305,59 @@ def main():
 
 		elif command[0] == "upload":
 			filename = command[1]
-			filename_hash = binascii.hexlify(md5(filename).digest()) + ".txt"
-			if command[1] in os.listdir("."):
-				print "Preparing file to upload."
 
-				file_size = os.path.getsize(filename)
-				file_hash = encrypt_file(filename, filename_hash, file_size, key, iv)
+			
+			if re.match(r"[a-zA-Z0-9_]+\.[a-zA-Z0-9]+", filename) == None:
+				print "Filename contains invalid characters. Only a-z, A-Z, 0-9 and _ allowed."
+				continue
+			# Check if a file with a similar name is present
+			filename_already_present = False
+			if current_directory_files:
+				for item in current_directory_files:
+					if item[1] == filename:
+						filename_already_present = True
 
-				try:
-					file = drive.CreateFile({'title': filename_hash})
-					file.SetContentFile(filename_hash)
-					file.Upload()
-				except Exception as e:
-					print "File upload failed. Please try again."
-					pass
+			if not filename_already_present:
+				filename_hash = binascii.hexlify(md5(filename).digest()) + ".txt"
+				if filename in os.listdir("."):
+					print "Preparing file to upload."
+
+					file_size = os.path.getsize(filename)
+					file_hash = encrypt_file(filename, filename_hash, file_size, key, iv)
+
+					try:
+						file = drive.CreateFile({'title': filename_hash})
+						file.SetContentFile(filename_hash)
+						file.Upload()
+					except Exception as e:
+						print "File upload failed. Please try again."
+						pass
+					else:
+						# Updating the filesystem file on Drive
+						current_directory_files.append((file['id'], filename, file['mimeType'], filename_hash, file_hash, file_size))
+						flat_filesystem = flatten_filesystem(current_directory_files)
+						open("temp_filesystem.txt", "w").write(flat_filesystem)
+						encrypt_file("temp_filesystem.txt", filesystem_hash, file_size, key, iv)
+						os.remove("temp_filesystem.txt")
+						# encrypt_file(filesystem_hash, filesystem_hash, )
+						# Checking if filesystem file uploaded for the first time
+						if FILESYSTEM_STATUS:
+							filesystem_file = drive.CreateFile({'id': filesystem_id}).Trash()
+						
+						FILESYSTEM_STATUS = True
+						filesystem_file = drive.CreateFile({'title': filesystem_hash})
+						filesystem_file.SetContentFile(filesystem_hash)
+						filesystem_file.Upload()
+						filesystem_name = filesystem_hash
+						filesystem_id = filesystem_file['id']
+
+						os.remove(filename_hash)
+						print'File uploaded successfully.'
+
 				else:
-					# Updating the filesystem file on Drive
-					current_directory_files.append((file['id'], filename, file['mimeType'], filename_hash, file_hash, file_size))
-					flat_filesystem = flatten_filesystem(current_directory_files)
-					open("temp_filesystem.txt", "w").write(flat_filesystem)
-					encrypt_file("temp_filesystem.txt", filesystem_hash, file_size, key, iv)
-					os.remove("temp_filesystem.txt")
-					# encrypt_file(filesystem_hash, filesystem_hash, )
-					# Checking if filesystem file uploaded for the first time
-					if FILESYSTEM_STATUS:
-						filesystem_file = drive.CreateFile({'id': filesystem_id}).Trash()
-					
-					FILESYSTEM_STATUS = True
-					filesystem_file = drive.CreateFile({'title': filesystem_hash})
-					filesystem_file.SetContentFile(filesystem_hash)
-					filesystem_file.Upload()
-					filesystem_name = filesystem_hash
-					filesystem_id = filesystem_file['id']
-
-					os.remove(filename_hash)
-					print'File uploaded successfully.'
-
+					print "File does not exist in current directory. Try again."
 			else:
-				print "File does not exist in current directory"
+				print "Cannot upload file as a file with the same name already exists. Try renaming the file and trying again."
 
 		elif command[0] == 'logout':
 			if len(command) == 1:
