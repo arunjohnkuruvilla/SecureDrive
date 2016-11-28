@@ -124,7 +124,7 @@ def flatten_filesystem(filesystem):
 def main():
 	DEBUG = False
 	FILESYSTEM_STATUS = False
-
+	FILESYSTEM_CORRUPT = True
 	
 
 
@@ -184,27 +184,59 @@ def main():
 	# os.remove(filesystem_hash)
 	########################################################################################
 
-	
-	for item in file_list:
-		if item['title'] == filesystem_hash:
-
-			filesystem_name = filesystem_hash
-			filesystem_id = item['id']
-			drive.CreateFile({'id': item['id']}).GetContentFile(filesystem_hash)
-			decrypt_file(filesystem_hash, "filesystem.txt", key, iv)
-			# Add logic to check validity of the file system here
-			#
-			#
-			#
-			#
-			
-			FILESYSTEM_STATUS = True
-
 	current_directory_files = []
+	if file_list:
+		for item in file_list:
+			if item['title'] == filesystem_hash:
 
-	if FILESYSTEM_STATUS:
-		for line in open("filesystem.txt"):
-			current_directory_files.append(line.split(","))
+				filesystem_name = filesystem_hash
+				filesystem_id = item['id']
+				drive.CreateFile({'id': item['id']}).GetContentFile(filesystem_hash)
+				decrypt_file(filesystem_hash, "filesystem.txt", key, iv)
+				
+				# Filesystem validation
+				temp_ids = []
+
+				for line in open("filesystem.txt"):
+					current_directory_files.append(line.split(","))
+					temp_ids.append(line.split(",")[0])
+
+				file_list = drive.ListFile({'q': "'root' in parents and trashed=false"}).GetList()
+				for item in file_list:
+					if item['id'] == filesystem_id:
+						continue
+					if item['id'] in temp_ids:
+						temp_ids.remove(item['id'])
+				if temp_ids == []:
+					FILESYSTEM_STATUS = True
+					FILESYSTEM_CORRUPT = False
+	else:
+		FILESYSTEM_CORRUPT = False
+
+	if FILESYSTEM_CORRUPT:
+		print "Corrupt filesystem present."
+		command = raw_input ("Do you want to wipe the Drive before proceeding? YES/NO: ")
+		if command == "YES":
+			print "Wiping entire drive. This might take a moment."
+			# Trashing all files in Drive
+			file_list = drive.ListFile({'q': "'root' in parents and trashed=false"}).GetList()
+			for item in file_list:
+				drive.CreateFile({'id': item['id']}).Trash()
+			current_directory_files = []
+			print "Drive wiped. Initializing filesystem."
+
+		elif command == "NO":
+			print "Initializing filesystem. Residual files may remain."
+			current_directory_files = []
+
+		else:
+			print "Invalid command given. Wiping Drive."
+
+			# Trashing all files in Drive
+			file_list = drive.ListFile({'q': "'root' in parents and trashed=false"}).GetList()
+			for item in file_list:
+				drive.CreateFile({'id': item['id']}).Trash()
+			current_directory_files = []
 
 	if os.path.exists(filesystem_hash):
 		os.remove(filesystem_hash)
@@ -227,6 +259,9 @@ def main():
 		elif command[0] == "download":
 			if len(command) == 2:
 				filename = command[1]
+				if re.match(r"[a-zA-Z0-9_]+\.[a-zA-Z0-9]+", filename) == None:
+					print "Filename contains invalid characters. Only a-z, A-Z, 0-9 and _ allowed."
+					continue
 				found_file_local = False
 				found_file_global = False
 				for item in current_directory_files:
@@ -255,10 +290,13 @@ def main():
 					else:
 						print "Requested resource is a directory"
 				else:
-					print "File with filename does not exist"
+					print "File with filename does not exist in the Dive. Possibly a corrupt filesystem."
 		elif command[0] == "delete":
 			if len(command) == 2:
 				filename = command[1]
+				if re.match(r"[a-zA-Z0-9_]+\.[a-zA-Z0-9]+", filename) == None:
+					print "Filename contains invalid characters. Only a-z, A-Z, 0-9 and _ allowed."
+					continue
 				found_file = False
 				for count, item in enumerate(current_directory_files):
 					if item[1] == filename:
