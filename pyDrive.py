@@ -12,6 +12,7 @@ from Crypto.Hash import SHA256
 from Crypto import Random
 
 BASE_SIZE = 32
+FILE_FORMAT = ".pkg"
 
 COMMANDS = [
 	("help","Shows this help banner"),													# yet to implement
@@ -171,7 +172,7 @@ def main():
 	#current_directory_directories = []
 
 	# Filesystem Syncronization
-	filesystem_hash = binascii.hexlify(md5(iv).digest()) + ".txt"
+	filesystem_hash = binascii.hexlify(md5(iv).digest()) + FILE_FORMAT
 	file_list = drive.ListFile({'q': "'root' in parents and trashed=false"}).GetList()
 	
 	########################################################################################
@@ -318,7 +319,7 @@ def main():
 						filename_already_present = True
 
 			if not filename_already_present:
-				filename_hash = binascii.hexlify(md5(filename).digest()) + ".txt"
+				filename_hash = binascii.hexlify(md5(filename).digest()) + FILE_FORMAT
 				if filename in os.listdir("."):
 					print "Preparing file to upload."
 
