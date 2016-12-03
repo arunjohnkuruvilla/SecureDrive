@@ -12,7 +12,7 @@ from Crypto.Hash import SHA256
 from Crypto import Random
 
 BASE_SIZE = 32
-FILE_FORMAT = ".pkg"
+FILE_FORMAT = ".txt"
 
 COMMANDS = [
 	("help","Shows this help banner"),													# yet to implement
@@ -33,13 +33,6 @@ def print_valid_commands():
 	for (key, value) in COMMANDS:
 		print key + " : " + value
 	print ""
-
-def derive_key_and_iv(password, salt, key_length, iv_length):
-	d = d_i = ''
-	while len(d) < key_length + iv_length:
-		d_i = md5(d_i + password + salt).digest()
-		d += d_i
-	return d[:key_length], d[key_length:key_length+iv_length]
 
 def encrypt_file(input_filename, output_filename, filesize, key, iv):
 	cipher = AES.new(key, AES.MODE_CBC, iv)
@@ -216,6 +209,7 @@ def main():
 	if FILESYSTEM_CORRUPT:
 		print "Corrupt filesystem present."
 		command = raw_input ("Do you want to wipe the Drive before proceeding? YES/NO: ")
+		command = command.upper()
 		if command == "YES":
 			print "Wiping entire drive. This might take a moment."
 			# Trashing all files in Drive
@@ -247,7 +241,9 @@ def main():
 	while(True):
 		command = raw_input("SecureDrive$ ")
 		command = command.split(" ", 1)
-		if command[0] == "ls" :
+		if command[0] == '':
+			continue
+		elif command[0] == "ls" :
 			if current_directory_files:
 				for item in current_directory_files:
 					print '|--', item[1]
@@ -303,13 +299,11 @@ def main():
 						requested_file = (item[0], item[1], item[2], item[3], item[4], item[5])
 						found_file = True
 						file_location = count
-						print file_location
 				if found_file:
 					if requested_file[2] != "application/vnd.google-apps.folder":
 						try:
 							file1 = drive.CreateFile({'id': requested_file[0]})
 							file1.Trash()
-							
 						except:
 							print "File cannot be deleted. Possibly a Google Doc or Slides file."
 						else:
@@ -317,7 +311,6 @@ def main():
 
 							del current_directory_files[file_location]
 							if current_directory_files:
-								print current_directory_files
 								flat_filesystem = flatten_filesystem(current_directory_files)
 								open("temp_filesystem.txt", "w").write(flat_filesystem)
 								encrypt_file("temp_filesystem.txt", filesystem_hash, file_size, key, iv)
