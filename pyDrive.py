@@ -56,9 +56,11 @@ def encrypt_file(input_filename, output_filename, filesize, key, iv):
 			break
 		h.update(data)
 
-	file_hash = h.digest()
+	file_encrypted_hash = binascii.hexlify(cipher.encrypt(h.digest()))
+	file_hash = binascii.hexlify(h.digest())
+	print file_hash
 
-	out_file.write(cipher.encrypt(file_hash))
+	out_file.write(file_encrypted_hash)
 
 	in_file.seek(0, 0)
 	finished = False
@@ -87,7 +89,9 @@ def decrypt_file(input_filename, output_filename, key, iv):
 	# for x in chunk:
 	#	out_file.write(bytes(x))
 
-	hash_chunk = cipher.decrypt(in_file.read(BASE_SIZE))
+	hash_chunk = in_file.read(BASE_SIZE*2)
+	
+	hash_chunk = binascii.hexlify(cipher.decrypt(binascii.unhexlify(hash_chunk)))
 
 	h = SHA256.new()
 
@@ -103,7 +107,8 @@ def decrypt_file(input_filename, output_filename, key, iv):
 		for x in chunk:
 			out_file.write(bytes(x))  # changed chunk to bytes(...)
 
-	if h.digest() == hash_chunk:
+	print binascii.hexlify(h.digest())
+	if binascii.hexlify(h.digest()) == hash_chunk:
 		return True, hash_chunk
 	else:
 		os.remove(output_filename)
@@ -194,11 +199,7 @@ def main():
 				status, temphash = decrypt_file(filesystem_hash, "filesystem.txt", key, iv)
 				
 				if status == False:
-					file_list = drive.ListFile({'q': "'root' in parents and trashed=false"}).GetList()
-					for item in file_list:
-						drive.CreateFile({'id': item['id']}).Trash()
-					current_directory_files = []
-					FILESYSTEM_CORRUPT = False
+					FILESYSTEM_CORRUPT = True
 				else:
 					# Filesystem validation
 					temp_ids = []
@@ -206,9 +207,10 @@ def main():
 					for line in open("filesystem.txt"):
 						if line == '\n':
 							continue
+						print line.split(',')
 						current_directory_files.append(line.split(","))
 						temp_ids.append(line.split(",")[0])
-
+					print temp_ids
 					file_list = drive.ListFile({'q': "'root' in parents and trashed=false"}).GetList()
 
 					for item in file_list:
@@ -216,7 +218,7 @@ def main():
 							continue
 						if item['id'] in temp_ids:
 							temp_ids.remove(item['id'])
-
+					print temp_ids
 					if temp_ids == []:
 						FILESYSTEM_STATUS = True
 						FILESYSTEM_CORRUPT = False
@@ -300,6 +302,8 @@ def main():
 							print "File cannot be downloaded. Possibly a Google Doc or Slides file."
 						else:
 							status, requested_file_hash = decrypt_file(requested_file[3], 'dec_'+requested_file[1], key, iv)
+							print status
+							print requested_file_hash
 							#os.remove(requested_file[3])
 							if status and requested_file_hash == requested_file[4]:
 								print "File downloaded and saved to ./" + 'dec_'+requested_file[1]
@@ -389,9 +393,11 @@ def main():
 						pass
 					else:
 						# Updating the filesystem file on Drive
+						print current_directory_files
 						os.remove(filename_hash)
 
 						current_directory_files.append((file['id'], filename, file['mimeType'], filename_hash, file_hash, file_size))
+						print current_directory_files
 						flat_filesystem = flatten_filesystem(current_directory_files)
 						open("temp_filesystem.txt", "w").write(flat_filesystem)
 						encrypt_file("temp_filesystem.txt", filesystem_hash, file_size, key, iv)
