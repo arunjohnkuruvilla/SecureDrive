@@ -278,6 +278,11 @@ def main():
 						# requested_file = (ID, title, mimeType, filename_hash, file_hash, file_size)
 						requested_file = (item[0], item[1], item[2], item[3], item[4], item[5])
 						found_file_local = True
+
+				if not found_file_local:
+					print "File with filename does not exist."
+					continue
+
 				temp_file_list = drive.ListFile({'q': "'root' in parents and trashed=false"}).GetList()
 				if temp_file_list:
 					for item in temp_file_list:
@@ -299,7 +304,7 @@ def main():
 					else:
 						print "Requested resource is a directory"
 				else:
-					print "File with filename does not exist in the Dive. Possibly a corrupt filesystem."
+					print "File with filename does not exist in the Drive. Possibly a corrupt filesystem."
 		elif command[0] == "delete":
 			if len(command) == 2:
 				filename = command[1]
