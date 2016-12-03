@@ -11,17 +11,17 @@ Show what the library does as concisely as possible, developers should be able t
 OpenSSL
 
 ## Installation
-
+```
 pip install PyDrive
 pip install pycrypto
 git clone https://github.com/arunjohnkuruvilla/SecureDrive.git
 cd SecureDrive
 python setup.py
 python pydrive.py 
-
+```
 
 ## API Reference
-
+```
 help				:	Shows this help banner
 ls					:	List files in the current working directory
 pwd					:	NOT IMPLEMENTED - Prints the present working directory
@@ -32,10 +32,10 @@ delete <filename>	:	Open directory specified.
 clear				:	Clears the screen
 logout				:	Log off current session.
 exit				:	Exit the application without logging out.
-
+```
 
 ## Contributors
 
-Arun John Kuruvilla
-Dushyanth N.P. Choudary
+- Arun John Kuruvilla
+- Dushyanth NP Chowdary
 
