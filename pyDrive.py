@@ -3,6 +3,7 @@ import json
 import binascii
 import re
 
+import hashlib
 from hashlib import md5
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
@@ -35,7 +36,7 @@ def print_valid_commands():
 	print ""
 
 def encrypt_file(input_filename, output_filename, filesize, key, iv):
-	cipher = AES.new(key, AES.MODE_CBC, iv)
+	cipher = AES.new(key, AES.MODE_OFB, iv)
 	in_file = open(input_filename, 'r')
 	hash_file = open(input_filename, 'rb')
 	out_file = open(output_filename, 'w')
@@ -63,7 +64,7 @@ def encrypt_file(input_filename, output_filename, filesize, key, iv):
 	finished = False
 	# Encrypting rest of the file
 	while not finished:
-		chunk = in_file.read(1024 * BASE_SIZE)
+		chunk = in_file.read(BASE_SIZE)
 		if len(chunk) == 0 or len(chunk) % BASE_SIZE != 0:
 			padding_length = BASE_SIZE - (len(chunk) % BASE_SIZE)
 			chunk += padding_length * chr(padding_length)
@@ -78,7 +79,7 @@ def decrypt_file(input_filename, output_filename, key, iv):
 	in_file = open(input_filename, 'r')
 	out_file = open(output_filename, 'w')
 
-	cipher = AES.new(key, AES.MODE_CBC, iv)
+	cipher = AES.new(key, AES.MODE_OFB, iv)
 
 	chunk = cipher.decrypt(in_file.read(BASE_SIZE))
 	padding_length = ord(chunk[-1])  # removed ord(...) as unnecessary
@@ -128,6 +129,11 @@ def main():
 		
 		salt = data["SALT"]
 		key = data["KEY"]
+
+		k = SHA256.new()
+		k.update(key)
+		key = k.digest()
+		
 		iv = data["IV"]
 
 	
@@ -185,24 +191,31 @@ def main():
 				filesystem_name = filesystem_hash
 				filesystem_id = item['id']
 				drive.CreateFile({'id': item['id']}).GetContentFile(filesystem_hash)
-				decrypt_file(filesystem_hash, "filesystem.txt", key, iv)
+				status, temphash = decrypt_file(filesystem_hash, "filesystem.txt", key, iv)
 				
-				# Filesystem validation
-				temp_ids = []
-
-				for line in open("filesystem.txt"):
-					current_directory_files.append(line.split(","))
-					temp_ids.append(line.split(",")[0])
-
-				file_list = drive.ListFile({'q': "'root' in parents and trashed=false"}).GetList()
-				for item in file_list:
-					if item['id'] == filesystem_id:
-						continue
-					if item['id'] in temp_ids:
-						temp_ids.remove(item['id'])
-				if temp_ids == []:
-					FILESYSTEM_STATUS = True
+				if status == False:
+					file_list = drive.ListFile({'q': "'root' in parents and trashed=false"}).GetList()
+					for item in file_list:
+						drive.CreateFile({'id': item['id']}).Trash()
+					current_directory_files = []
 					FILESYSTEM_CORRUPT = False
+				else:
+					# Filesystem validation
+					temp_ids = []
+
+					for line in open("filesystem.txt"):
+						current_directory_files.append(line.split(","))
+						temp_ids.append(line.split(",")[0])
+
+					file_list = drive.ListFile({'q': "'root' in parents and trashed=false"}).GetList()
+					for item in file_list:
+						if item['id'] == filesystem_id:
+							continue
+						if item['id'] in temp_ids:
+							temp_ids.remove(item['id'])
+					if temp_ids == []:
+						FILESYSTEM_STATUS = True
+						FILESYSTEM_CORRUPT = False
 	else:
 		FILESYSTEM_CORRUPT = False
 
@@ -366,6 +379,8 @@ def main():
 						pass
 					else:
 						# Updating the filesystem file on Drive
+						os.remove(filename_hash)
+
 						current_directory_files.append((file['id'], filename, file['mimeType'], filename_hash, file_hash, file_size))
 						flat_filesystem = flatten_filesystem(current_directory_files)
 						open("temp_filesystem.txt", "w").write(flat_filesystem)
@@ -383,7 +398,7 @@ def main():
 						filesystem_name = filesystem_hash
 						filesystem_id = filesystem_file['id']
 
-						os.remove(filename_hash)
+						os.remove(filesystem_hash)
 						print'File uploaded successfully.'
 
 				else:
