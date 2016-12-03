@@ -204,15 +204,19 @@ def main():
 					temp_ids = []
 
 					for line in open("filesystem.txt"):
+						if line == '\n':
+							continue
 						current_directory_files.append(line.split(","))
 						temp_ids.append(line.split(",")[0])
 
 					file_list = drive.ListFile({'q': "'root' in parents and trashed=false"}).GetList()
+
 					for item in file_list:
 						if item['id'] == filesystem_id:
 							continue
 						if item['id'] in temp_ids:
 							temp_ids.remove(item['id'])
+
 					if temp_ids == []:
 						FILESYSTEM_STATUS = True
 						FILESYSTEM_CORRUPT = False
@@ -296,7 +300,7 @@ def main():
 							print "File cannot be downloaded. Possibly a Google Doc or Slides file."
 						else:
 							status, requested_file_hash = decrypt_file(requested_file[3], 'dec_'+requested_file[1], key, iv)
-							os.remove(requested_file[3])
+							#os.remove(requested_file[3])
 							if status and requested_file_hash == requested_file[4]:
 								print "File downloaded and saved to ./" + 'dec_'+requested_file[1]
 							else:
@@ -331,7 +335,8 @@ def main():
 							if current_directory_files:
 								flat_filesystem = flatten_filesystem(current_directory_files)
 								open("temp_filesystem.txt", "w").write(flat_filesystem)
-								encrypt_file("temp_filesystem.txt", filesystem_hash, file_size, key, iv)
+
+								encrypt_file("temp_filesystem.txt", filesystem_hash, requested_file[5], key, iv)
 								os.remove("temp_filesystem.txt")
 								# encrypt_file(filesystem_hash, filesystem_hash, )
 								# Checking if filesystem file uploaded for the first time
