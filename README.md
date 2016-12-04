@@ -1,8 +1,7 @@
 # SecureDrive
 
-SecureDrive brings [Google Drive](https://drive.google.com/) to the command line. Allowing faster and more secure access to the cloud from the terminal. 
+SecureDrive brings [Google Drive](https://www.google.com/drive/) to the command line. Allowing faster and more secure access to the cloud from the terminal. 
 
-At the top of the file there should be a short introduction and/ or overview that explains **what** the project is. This description should match descriptions added for package managers (Gemspec, package.json, etc.)
 
 ## Code Example
 
@@ -10,9 +9,9 @@ Show what the library does as concisely as possible, developers should be able t
 
 ## Dependencies
 
-OpenSSL - Library for cryptographic functions in python.
-PyCrypto - Library for cryptographic functions in python.
-PyDrive - Library for API calls to Google Drive in python.
+[OpenSSL](https://www.openssl.org/) - Library for cryptographic functions in python.
+[PyCrypto](https://www.dlitz.net/software/pycrypto/) - Library for cryptographic functions in python.
+[PyDrive](https://pythonhosted.org/PyDrive/) - Library for API calls to Google Drive in python.
 
 ## Installation
 ```
@@ -40,6 +39,5 @@ exit				:	Exit the application without logging out.
 
 ## Contributors
 
-- Arun John Kuruvilla
-- Dushyanth NP Chowdary
-
+* Arun John Kuruvilla
+* Dushyanth NP Chowdary
