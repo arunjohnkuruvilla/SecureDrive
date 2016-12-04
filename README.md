@@ -1,6 +1,6 @@
 # SecureDrive
 
-SecureDrive brings [Google Drive](https://www.google.com/drive/) to the command line. Allowing faster and more secure access to the cloud from the terminal. 
+SecureDrive brings [Google Drive](https://www.google.com/drive/) to the command line. Allowing faster and more secure access to the cloud from the terminal. Secure drive also uses AES256 encryption, OFB and salting to encrypt all data to enforce confidentiality and it uses SSL to enforce integrity.
 
 
 ## Dependencies
@@ -34,8 +34,16 @@ exit				:	Exit the application without logging out.
 ```
 ## Future Work
 
+* Implement a hierarchical file systems. The current system just supports one level.
+* Use a USB as a key, which has to be plugged in to communicate with Google Drive
+* Implement multiple cryptographic schemes as encryption and hashing options.
+* Add a GUI - Make more user friendly
+* Port to other OSs and mobile.
+
+## To Contribute
+**Contributions are more than welcome**. Please feel free to develop any of the features mentioned in future work. Also please feel free to send us more ideas.
 
 ## Contributors
 
-* Arun John Kuruvilla
-* Dushyanth NP Chowdary
+* [Arun John Kuruvilla](https://github.com/arunjohnkuruvilla)
+* [Dushyanth NP Chowdary](https://github.com/n0ma-d)
