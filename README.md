@@ -1,4 +1,6 @@
-## Synopsis
+### SecureDrive
+
+SecureDrive brings [Google Drive](www.drive.google.com) to the command line. Allowing faster and more secure access to the cloud from the terminal. 
 
 At the top of the file there should be a short introduction and/ or overview that explains **what** the project is. This description should match descriptions added for package managers (Gemspec, package.json, etc.)
 
@@ -8,7 +10,9 @@ Show what the library does as concisely as possible, developers should be able t
 
 ## Dependencies
 
-OpenSSL
+OpenSSL - Library for cryptographic functions in python.
+PyCrypto - Library for cryptographic functions in python.
+PyDrive - Library for API calls to Google Drive in python.
 
 ## Installation
 ```
