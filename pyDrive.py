@@ -97,7 +97,12 @@ def decrypt_file(input_filename, output_filename, key, iv):
 	next_chunk = ''
 	finished = False
 	while not finished:
-		chunk, next_chunk = next_chunk, cipher.decrypt(in_file.read(BASE_SIZE))
+		try:
+			chunk, next_chunk = next_chunk, cipher.decrypt(in_file.read(BASE_SIZE))
+		except:
+			if os.path.exists(output_filename):
+				os.remove(output_filename)
+			return False, 0
 		if len(next_chunk) == 0:
 			padding_length = ord(chunk[-1])  # removed ord(...) as unnecessary
 			chunk = chunk[:-padding_length]
@@ -109,7 +114,8 @@ def decrypt_file(input_filename, output_filename, key, iv):
 	if binascii.hexlify(h.digest()) == hash_chunk:
 		return True, hash_chunk
 	else:
-		os.remove(output_filename)
+		if os.path.exists(output_filename):
+			os.remove(output_filename)
 		return False, 0
 
 def flatten_filesystem(filesystem):
@@ -266,21 +272,29 @@ def main():
 		elif command[0] == "pwd":
 			print "Present Working Directory - Not implemented"
 
+		# Download Function
 		elif command[0] == "download":
+
+			# Check for Argument count
 			if len(command) == 2:
 				filename = command[1]
+
+				#Check for filename validity
 				if re.match(r"[a-zA-Z0-9_]+\.[a-zA-Z0-9]+", filename) == None:
 					print "Filename contains invalid characters. Only a-z, A-Z, 0-9 and _ allowed."
 					continue
-				found_file_local = False
-				found_file_global = False
+
+				FOUND_FILE_LOCAL = False
+				FOUND_FILE_GLOBAL = False
+
+				# Logic to check file presence
 				for item in current_directory_files:
 					if item[1] == filename:
 						# requested_file = (ID, title, mimeType, filename_hash, file_hash, file_size)
 						requested_file = (item[0], item[1], item[2], item[3], item[4], item[5])
-						found_file_local = True
+						FOUND_FILE_LOCAL = True
 
-				if not found_file_local:
+				if not FOUND_FILE_LOCAL:
 					print "File with filename does not exist."
 					continue
 
@@ -288,24 +302,33 @@ def main():
 				if temp_file_list:
 					for item in temp_file_list:
 						if item['title'] == requested_file[3]:
-							found_file_global = True
-				if found_file_local and found_file_global:
+							FOUND_FILE_GLOBAL = True
+
+				# Download and Decrypt
+				if FOUND_FILE_LOCAL and FOUND_FILE_GLOBAL:
 					if requested_file[2] != "application/vnd.google-apps.folder":
 						try:
 							drive.CreateFile({'id': requested_file[0]}).GetContentFile(requested_file[3])
 						except:
 							print "File cannot be downloaded. Possibly a Google Doc or Slides file."
+							continue
+
 						else:
 							status, requested_file_hash = decrypt_file(requested_file[3], 'dec_'+requested_file[1], key, iv)
-							#os.remove(requested_file[3])
+
+							if os.path.exists(requested_file[3]):
+								os.remove(requested_file[3])
+
 							if status and requested_file_hash == requested_file[4]:
 								print "File downloaded and saved to ./" + 'dec_'+requested_file[1]
 							else:
-								print "Corrupted file present."
+								print "Corrupted file present. File has been modified outside the system."
 					else:
 						print "Requested resource is a directory"
 				else:
 					print "File with filename does not exist in the Drive. Possibly a corrupt filesystem."
+
+		# Delete Function
 		elif command[0] == "delete":
 			if len(command) == 2:
 				filename = command[1]
@@ -334,7 +357,9 @@ def main():
 								open("temp_filesystem.txt", "w").write(flat_filesystem)
 
 								encrypt_file("temp_filesystem.txt", filesystem_hash, requested_file[5], key, iv)
-								os.remove("temp_filesystem.txt")
+
+								if os.path.exists("temp_filesystem.txt"):
+									os.remove("temp_filesystem.txt")
 								# encrypt_file(filesystem_hash, filesystem_hash, )
 								# Checking if filesystem file uploaded for the first time
 								if FILESYSTEM_STATUS:
@@ -386,14 +411,17 @@ def main():
 						pass
 					else:
 						# Updating the filesystem file on Drive
-						os.remove(filename_hash)
+						if os.path.exists(filename_hash):
+							os.remove(filename_hash)
 
 						current_directory_files.append((file['id'], filename, file['mimeType'], filename_hash, file_hash, file_size))
 		
 						flat_filesystem = flatten_filesystem(current_directory_files)
 						open("temp_filesystem.txt", "w").write(flat_filesystem)
 						encrypt_file("temp_filesystem.txt", filesystem_hash, file_size, key, iv)
-						os.remove("temp_filesystem.txt")
+
+						if os.path.exists("temp_filesystem.txt"):
+							os.remove("temp_filesystem.txt")
 						# encrypt_file(filesystem_hash, filesystem_hash, )
 						# Checking if filesystem file uploaded for the first time
 						if FILESYSTEM_STATUS:
@@ -406,7 +434,8 @@ def main():
 						filesystem_name = filesystem_hash
 						filesystem_id = filesystem_file['id']
 
-						os.remove(filesystem_hash)
+						if os.path.exists(filesystem_hash):
+							os.remove(filesystem_hash)
 						print'File uploaded successfully.'
 
 				else:
