@@ -5,9 +5,9 @@ SecureDrive brings [Google Drive](https://www.google.com/drive/) to the command 
 
 ## Dependencies
 
-[OpenSSL](https://www.openssl.org/) - Library for cryptographic functions in python.
-[PyCrypto](https://www.dlitz.net/software/pycrypto/) - Library for cryptographic functions in python.
-[PyDrive](https://pythonhosted.org/PyDrive/) - Library for API calls to Google Drive in python.
+1. [OpenSSL](https://www.openssl.org/) - Library for cryptographic functions in python.
+2. [PyCrypto](https://www.dlitz.net/software/pycrypto/) - Library for cryptographic functions in python.
+3. [PyDrive](https://pythonhosted.org/PyDrive/) - Library for API calls to Google Drive in python.
 
 ## Installation
 ```
@@ -16,9 +16,11 @@ pip install pycrypto
 git clone https://github.com/arunjohnkuruvilla/SecureDrive.git
 cd SecureDrive
 python setup.py
+```
+## Running the tool
+```
 python pydrive.py 
 ```
-
 ## API Reference
 ```
 help				:	Shows this help banner
