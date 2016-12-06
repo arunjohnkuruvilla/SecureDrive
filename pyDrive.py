@@ -48,7 +48,7 @@ def encrypt_file(input_filename, output_filename, filesize, key, iv):
 	chunk = str(filesize)
 	padding_length = BASE_SIZE - (len(chunk) % BASE_SIZE)
 	chunk += padding_length * chr(padding_length)
-	out_file.write(cipher.encrypt(chunk))
+	out_file.write(binascii.hexlify(cipher.encrypt(chunk)))
 
 	while True:
 		data = hash_file.read(BASE_SIZE)
@@ -70,23 +70,24 @@ def encrypt_file(input_filename, output_filename, filesize, key, iv):
 			padding_length = BASE_SIZE - (len(chunk) % BASE_SIZE)
 			chunk += padding_length * chr(padding_length)
 			finished = True
-		out_file.write(cipher.encrypt(chunk))
+
+		out_file.write(binascii.hexlify(cipher.encrypt(chunk)))
+
+	out_file.close()
+	in_file.close()
 
 	return file_hash
 
 def decrypt_file(input_filename, output_filename, key, iv):
-	# added salt_header=''
-	# changed 'Salted__' to salt_header
+
 	in_file = open(input_filename, 'r')
 	out_file = open(output_filename, 'w')
 
 	cipher = AES.new(key, AES.MODE_OFB, iv)
 
-	chunk = cipher.decrypt(in_file.read(BASE_SIZE))
-	padding_length = ord(chunk[-1])  # removed ord(...) as unnecessary
+	chunk = cipher.decrypt(binascii.unhexlify(in_file.read(BASE_SIZE*2)))
+	padding_length = ord(chunk[-1]) 
 	chunk = chunk[:-padding_length]
-	# for x in chunk:
-	#	out_file.write(bytes(x))
 
 	hash_chunk = in_file.read(BASE_SIZE*2)
 	
@@ -98,18 +99,19 @@ def decrypt_file(input_filename, output_filename, key, iv):
 	finished = False
 	while not finished:
 		try:
-			chunk, next_chunk = next_chunk, cipher.decrypt(in_file.read(BASE_SIZE))
+			#chunk, next_chunk = next_chunk, cipher.decrypt(binascii.unhexlify(in_file.read(BASE_SIZE*2)))
+			chunk, next_chunk = next_chunk, cipher.decrypt(binascii.unhexlify(in_file.read(BASE_SIZE*2)))
 		except:
 			if os.path.exists(output_filename):
 				os.remove(output_filename)
 			return False, 0
 		if len(next_chunk) == 0:
-			padding_length = ord(chunk[-1])  # removed ord(...) as unnecessary
+			padding_length = ord(chunk[-1]) 
 			chunk = chunk[:-padding_length]
 			finished = True
 		h.update(chunk)
 		for x in chunk:
-			out_file.write(bytes(x))  # changed chunk to bytes(...)
+			out_file.write(bytes(x)) 
 
 	if binascii.hexlify(h.digest()) == hash_chunk:
 		return True, hash_chunk
@@ -129,14 +131,11 @@ def main():
 	FILESYSTEM_STATUS = False
 	FILESYSTEM_CORRUPT = True
 	
-
-
 	# Checking for Private Key
 	if os.path.exists("./private.key"):
 		with open('private.key') as data_file:    
 			data = json.load(data_file)
 		
-		salt = data["SALT"]
 		key = data["KEY"]
 
 		k = SHA256.new()
