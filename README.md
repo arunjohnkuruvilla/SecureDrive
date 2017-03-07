@@ -48,4 +48,4 @@ exit				:	Exit the application without logging out.
 ## Contributors
 
 * [Arun John Kuruvilla](https://github.com/arunjohnkuruvilla)
-* [Dushyanth NP Chowdary](https://github.com/n0ma-d)
+* [Dushyanth NP Chowdary](https://github.com/chowdaryd)
