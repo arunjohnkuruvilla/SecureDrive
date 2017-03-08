@@ -2,6 +2,7 @@ import os
 import json
 import binascii
 import re
+import warnings
 
 import hashlib
 from hashlib import md5
@@ -165,11 +166,19 @@ def main():
 	# Initialization
 	try:
 		gauth = GoogleAuth()
-		gauth.LocalWebserverAuth()
-		drive = GoogleDrive(gauth)
-	except:
-		print "No internet connection found. Exiting"
+	except InvalidConfigError:
+		print "File client_secret.json not found. Exiting."
 		return
+
+	with warnings.catch_warnings():
+		warnings.simplefilter("ignore")
+		try:
+			gauth.LocalWebserverAuth()
+			drive = GoogleDrive(gauth)
+		except Warning as e:
+			pass
+		except Exception as e:
+			print "No internet connection found. Exiting."
 
 	#current_location = "root"
 	#current_location_name = "root"

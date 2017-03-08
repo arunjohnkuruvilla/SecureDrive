@@ -10,6 +10,8 @@ SecureDrive brings [Google Drive](https://www.google.com/drive/) to the command 
 3. [PyDrive](https://pythonhosted.org/PyDrive/) - Library for API calls to Google Drive in python.
 
 ## Installation
+1. Complete Step 1 at [Google Drive for Python](https://developers.google.com/drive/v2/web/quickstart/python)
+2. Proceed with the following: 
 ```
 pip install PyDrive
 pip install pycrypto
@@ -19,7 +21,7 @@ python setup.py
 ```
 ## Running the tool
 ```
-python pydrive.py 
+python pyDrive.py 
 ```
 ## API Reference
 ```
