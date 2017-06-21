@@ -28,16 +28,16 @@ python pyDrive.py
 ```
 ## API Reference
 ```
-help				:	Shows this help banner
-ls					:	List files in the current working directory
-pwd					:	NOT IMPLEMENTED - Prints the present working directory
+help			:	Shows this help banner
+ls			:	List files in the current working directory
+pwd			:	NOT IMPLEMENTED - Prints the present working directory
 upload <filename>	: 	Uploads a file to drive
-download <filename> :	Downloads the file
+download <filename> 	:	Downloads the file
 cd <directory>		:	NOT IMPLEMENTED - Open directory specified.	
 delete <filename>	:	Open directory specified.
-clear				:	Clears the screen
-logout				:	Log off current session.
-exit				:	Exit the application without logging out.
+clear			:	Clears the screen
+logout			:	Log off current session.
+exit			:	Exit the application without logging out.
 ```
 ## Future Work
 
